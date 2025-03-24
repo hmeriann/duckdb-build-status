@@ -1,11 +1,11 @@
 name: Check Nightly Build Status
 on:
-  repository_dispatch:
-    types: [run-nightly-builds-status]
+  # repository_dispatch:
+  #   types: [run-nightly-builds-status]
   workflow_call:
     secrets:
       PAT_TOKEN:
-        required: true
+        required: false
     inputs:
       branch:
         type: string
