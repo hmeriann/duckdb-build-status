@@ -5,7 +5,7 @@ on:
   workflow_call:
     secrets:
       PAT_TOKEN:
-        required: false
+        required: true
     inputs:
       branch:
         type: string
@@ -13,14 +13,14 @@ on:
         type: string
       should_publish:
         type: string
-  workflow_dispatch:
-    inputs:
-      branch:
-        type: string
-      event:
-        type: string
-      should_publish:
-        type: string
+  # workflow_dispatch:
+  #   inputs:
+  #     branch:
+  #       type: string
+  #     event:
+  #       type: string
+  #     should_publish:
+  #       type: string
 
 permissions:
   contents: write
