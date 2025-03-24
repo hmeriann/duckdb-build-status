@@ -269,7 +269,7 @@ jobs:
         env:
           CI_COMMIT_MESSAGE: "Add ${{ needs.get-run-info.outputs.CURR_DATE }} Reports"
           CI_COMMIT_AUTHOR: "hmeriann"
-          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
+          GHITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
         run: |
           git config --global user.name ${{ env.CI_COMMIT_AUTHOR }}
           git config --global user.email "zuleykha.pavlichenkova@gmail.com"
@@ -284,7 +284,9 @@ jobs:
 
           ls -lah docs/${{ inputs.branch }}
 
+          git remote set-url origin https://x-access-token:${{ secrets.PAT_TOKEN }}@github.com/hmeriann/duckdb-build-status.git
           git add docs/${{ inputs.branch }}/${{ needs.get-run-info.outputs.CURR_DATE }}-*.md
           git commit -m "${{ env.CI_COMMIT_MESSAGE }}"
+          
           git push origin main
   
