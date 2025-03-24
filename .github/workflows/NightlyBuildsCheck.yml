@@ -234,7 +234,7 @@ jobs:
           pattern: REPORT*
           path: .
           
-      - name: Commit REPORT
+      - name: Push REPORT
         shell: bash
         env:
             CI_COMMIT_MESSAGE: "Add ${{ needs.get-run-info.outputs.CURR_DATE }} Reports"
