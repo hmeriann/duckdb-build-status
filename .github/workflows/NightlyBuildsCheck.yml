@@ -3,6 +3,9 @@ on:
   repository_dispatch:
     types: [run-nightly-builds-status]
   workflow_call:
+    secrets:
+      PAT_TOKEN:
+        required: true
     inputs:
       branch:
         type: string
