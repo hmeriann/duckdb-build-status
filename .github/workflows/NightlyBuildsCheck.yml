@@ -236,31 +236,55 @@ jobs:
           pattern: REPORT*
           path: .
           
-      - name: Push REPORT
+      # - name: Push REPORT
+      #   shell: bash
+      #   env:
+      #       CI_COMMIT_MESSAGE: "Add ${{ needs.get-run-info.outputs.CURR_DATE }} Reports"
+      #   run: |
+      #     echo "inputs.should_publish ${{ inputs.should_publish }}"
+
+      #     git config --local user.email "actions@github.com"
+      #     git config --local user.name ${{ secrets.PAT_USER }}
+        
+      #     git config pull.rebase false
+      #     git pull origin main
+        
+      #     mkdir -p docs/
+      #     mkdir -p docs/${{ inputs.branch }}
+        
+      #     ls -lah
+        
+      #     mv REPORT*/${{ needs.get-run-info.outputs.CURR_DATE }}-${{ inputs.branch }}.md docs/${{ inputs.branch }}/
+          
+      #     git add docs/${{ inputs.branch }}/${{ needs.get-run-info.outputs.CURR_DATE }}-*.md
+      #     git commit -m "${{ env.CI_COMMIT_MESSAGE }}"
+          
+      #     git remote add target-repo https://username:${{ secrets.GH_TOKEN }}@github.com/hmeriann/duckdb-build-status.git
+      #     ls -lah docs/${{ inputs.branch }}
+          
+      #     git push target-repo main
+
+      - name: Upload REPORT to the docs directory
         shell: bash
         env:
-            CI_COMMIT_MESSAGE: "Add ${{ needs.get-run-info.outputs.CURR_DATE }} Reports"
+          CI_COMMIT_MESSAGE: "Add ${{ needs.get-run-info.outputs.CURR_DATE }} Reports"
+          CI_COMMIT_AUTHOR: "hmeriann"
+          GH_TOKEN: ${{ github.token }}
         run: |
-          echo "inputs.should_publish ${{ inputs.should_publish }}"
-
-          git config --local user.email "actions@github.com"
-          git config --local user.name ${{ secrets.PAT_USER }}
-        
+          git config --global user.name ${{ env.CI_COMMIT_AUTHOR }}
+          git config --global user.email "zuleykha.pavlichenkova@gmail.com"
+          
           git config pull.rebase false
           git pull origin main
-        
+
           mkdir -p docs/
           mkdir -p docs/${{ inputs.branch }}
-        
-          ls -lah
-        
-          mv REPORT*/${{ needs.get-run-info.outputs.CURR_DATE }}-${{ inputs.branch }}.md docs/${{ inputs.branch }}/
           
+          mv REPORT*/${{ needs.get-run-info.outputs.CURR_DATE }}-${{ inputs.branch }}.md docs/${{ inputs.branch }}/
+
+          ls -lah docs/${{ inputs.branch }}
+
           git add docs/${{ inputs.branch }}/${{ needs.get-run-info.outputs.CURR_DATE }}-*.md
           git commit -m "${{ env.CI_COMMIT_MESSAGE }}"
-          
-          git remote add target-repo https://username:${{ secrets.GH_TOKEN }}@github.com/hmeriann/duckdb-build-status.git
-          ls -lah docs/${{ inputs.branch }}
-          
-          git push target-repo main
+          git push origin main
   
