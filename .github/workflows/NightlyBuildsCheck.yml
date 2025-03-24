@@ -1,5 +1,7 @@
 name: Check Nightly Build Status
 on:
+  repository_dispatch:
+    types: [run-nightly-builds-status]
   workflow_call:
     inputs:
       branch:
@@ -242,7 +244,7 @@ jobs:
           echo "inputs.should_publish ${{ inputs.should_publish }}"
 
           git config --local user.email "actions@github.com"
-          git config --local user.name "GitHub Actions"
+          git config --local user.name ${{ secrets.PAT_USER }}
         
           git config pull.rebase false
           git pull origin main
