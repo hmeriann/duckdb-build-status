@@ -3,9 +3,6 @@ on:
   # repository_dispatch:
   #   types: [run-nightly-builds-status]
   workflow_call:
-    # secrets:
-    #   PAT_TOKEN:
-    #     required: true
     inputs:
       branch:
         type: string
@@ -13,14 +10,14 @@ on:
         type: string
       should_publish:
         type: string
-  # workflow_dispatch:
-  #   inputs:
-  #     branch:
-  #       type: string
-  #     event:
-  #       type: string
-  #     should_publish:
-  #       type: string
+  workflow_dispatch:
+    inputs:
+      branch:
+        type: string
+      event:
+        type: string
+      should_publish:
+        type: string
 
 permissions:
   contents: write
@@ -272,6 +269,7 @@ jobs:
         env:
           CI_COMMIT_MESSAGE: "Add ${{ needs.get-run-info.outputs.CURR_DATE }} Reports"
           CI_COMMIT_AUTHOR: "hmeriann"
+          PAT: ${{ secrets.PAT_TOKEN }}
         run: |
           git config --global user.name ${{ env.CI_COMMIT_AUTHOR }}
           git config --global user.email "zuleykha.pavlichenkova@gmail.com"
@@ -286,7 +284,7 @@ jobs:
 
           ls -lah docs/${{ inputs.branch }}
 
-          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/hmeriann/duckdb-build-status.git
+          git remote set-url origin https://x-access-token:${{ env.PAT }}@github.com/hmeriann/duckdb-build-status.git
           git add docs/${{ inputs.branch }}/${{ needs.get-run-info.outputs.CURR_DATE }}-*.md
           git commit -m "${{ env.CI_COMMIT_MESSAGE }}"
           
