@@ -124,7 +124,6 @@ jobs:
         env:
           CURR_DATE: ${{ needs.get-run-info.outputs.CURR_DATE }}
         run: |
-            uname -a
             if [[ ${{ matrix.config.nightly_build }} != 'python' ]]; then
               echo "Downloading duckdb-binaries-${{ matrix.config.duckdb_binary }} artifact from ${{ matrix.config.run_id }}..."
               if gh run download ${{ matrix.config.run_id }} --repo ${{ env.GH_REPO }} -n duckdb-binaries-${{ matrix.config.duckdb_binary }}; then
@@ -140,7 +139,6 @@ jobs:
                 fi
               fi
             fi
-            ls -lah
             echo "Verifying version and testing extensions..."
             python scripts/verify_and_test.py \
                 --nightly_build ${{ matrix.config.nightly_build }} \
@@ -233,43 +231,17 @@ jobs:
         with:
           pattern: REPORT*
           path: .
-          
-      # - name: Push REPORT
-      #   shell: bash
-      #   env:
-      #       CI_COMMIT_MESSAGE: "Add ${{ needs.get-run-info.outputs.CURR_DATE }} Reports"
-      #   run: |
-      #     echo "inputs.should_publish ${{ inputs.should_publish }}"
-
-      #     git config --local user.email "actions@github.com"
-      #     git config --local user.name ${{ secrets.PAT_USER }}
-        
-      #     git config pull.rebase false
-      #     git pull origin main
-        
-      #     mkdir -p docs/
-      #     mkdir -p docs/${{ inputs.branch }}
-        
-      #     ls -lah
-        
-      #     mv REPORT*/${{ needs.get-run-info.outputs.CURR_DATE }}-${{ inputs.branch }}.md docs/${{ inputs.branch }}/
-          
-      #     git add docs/${{ inputs.branch }}/${{ needs.get-run-info.outputs.CURR_DATE }}-*.md
-      #     git commit -m "${{ env.CI_COMMIT_MESSAGE }}"
-          
-      #     git remote add target-repo https://username:${{ secrets.GH_TOKEN }}@github.com/hmeriann/duckdb-build-status.git
-      #     ls -lah docs/${{ inputs.branch }}
-          
-      #     git push target-repo main
 
       - name: Upload REPORT to the docs directory
         shell: bash
         env:
           CI_COMMIT_MESSAGE: "Add ${{ needs.get-run-info.outputs.CURR_DATE }} Reports"
           CI_COMMIT_AUTHOR: "hmeriann"
+          CI_COMMIT_EMAIL: "zuleykha.pavlichenkova@gmail.com"
+          GH_TOKEN: ${{ github.token }}
         run: |
-          git config --global user.name "github-actions"
-          git config --global user.email "actions@github.com"
+          git config --global user.name ${{ env.CI_COMMIT_AUTHOR }}
+          git config --global user.email ${{ env.CI_COMMIT_EMAIL }}
           
           git config pull.rebase false
           git pull origin main
@@ -281,9 +253,8 @@ jobs:
 
           ls -lah docs/${{ inputs.branch }}
 
-          git remote set-url origin https://x-access-token:${{ secrets.PAT_TOKEN }}@github.com/hmeriann/duckdb-build-status.git
-          git add docs/${{ inputs.branch }}/${{ needs.get-run-info.outputs.CURR_DATE }}-*.md
+          git add docs/main/${{ needs.get-run-info.outputs.CURR_DATE }}-*.md
+          git add docs/v1.2-histrionicus/${{ needs.get-run-info.outputs.CURR_DATE }}-*.md
           git commit -m "${{ env.CI_COMMIT_MESSAGE }}"
-          
           git push origin main
   
