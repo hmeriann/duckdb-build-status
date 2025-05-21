@@ -227,7 +227,9 @@ jobs:
           # download nightly release files from GH and generate digests
           for file in $(cat release-assets.txt); do
             gh run download $run_id --repo ${{ env.GH_REPO }} -n $file
-            sha256sum "$file" >> ${{ needs.get-run-info.outputs.CURR_DATE }}_checksum_${{ github.ref_name }}.txt
+            if [ -f $file ]; then
+              sha256sum "$file" >> ${{ needs.get-run-info.outputs.CURR_DATE }}_checksum_${{ github.ref_name }}.txt
+            fi
             rm -f $file
           done
           # add a link to the file to the REPORT
