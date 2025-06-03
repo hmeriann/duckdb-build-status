@@ -97,6 +97,7 @@ def list_extensions():
         for match in matches:
             extensions += get_extensions_from(match)
     extensions = list(set(extensions))
+    extensions.append('ducklake')
     return extensions
 
 # return a number of consecutive failures
