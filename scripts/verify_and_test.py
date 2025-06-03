@@ -123,6 +123,7 @@ def main():
         result=duckdb.sql('SELECT extension_name FROM duckdb_extensions();').fetchall()
         extensions = [row[0] for row in result]
     extensions.append('ducklake')
+    print(extensions)
 
     if nightly_build in SHOULD_BE_TESTED:
         if nightly_build == 'python':
@@ -140,10 +141,9 @@ def main():
                 # write tested platform
                 subprocess_result = subprocess.run([ tested_binary, "--csv", "--noheader", "-c", "PRAGMA platform"], text=True, capture_output=True)
                 tested_platform = subprocess_result.stdout.strip()
-                print(tested_platform)
+                print("tested_platform:", tested_platform)
                 with open(tested_platforms_file_name, "a") as f:
                     f.write(f"{ nightly_build }_{ architecture },{ tested_platform }\n")
-                    print("HERE")
                 test_extensions(tested_binary, file_name, extensions, tested_platform)
             else:
                 non_matching_sha_file_name = f"{ branch }_non_matching_sha_{ nightly_build }_{ arch }.csv"
