@@ -4,7 +4,7 @@ on:
     inputs:
       duckdb_arch:
         type: string
-      runner:
+      runs_on:
         type: string
       nightly_build:
         type: string
@@ -19,7 +19,7 @@ on:
       duckdb_arch:
         description: ''
         type: string
-      runner:
+      runs_on:
         description: ''
         type: string
       nightly_build:
@@ -42,11 +42,11 @@ env:
 
 jobs:
   run-tests:
-    name: ${{ inputs.branch }} - ${{ inputs.nightly_build }} ${{ inputs.duckdb_arch }} (${{ inputs.runner }})
+    name: ${{ inputs.branch }} - ${{ inputs.nightly_build }} ${{ inputs.duckdb_arch }} (${{ inputs.runs_on }})
     continue-on-error: true
-    runs-on: ${{ inputs.runner }}
+    runs-on: ${{ inputs.runs_on }}
     steps:
-      - run: echo ${{ inputs.branch }} ${{ inputs.nightly_build }} ${{ inputs.runner }} ${{ inputs.duckdb_arch }} 
+      - run: echo ${{ inputs.branch }} ${{ inputs.nightly_build }} ${{ inputs.runs_on }} ${{ inputs.duckdb_arch }} 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -74,8 +74,8 @@ jobs:
         run: |
             RUN_ID=$(gh run list --workflow "InvokeCI.yml" --repo duckdb/duckdb --branch v1.3-ossivalis --json databaseId,status,headBranch,headSha -q '.[0].databaseId')
             if [[ ${{ inputs.nightly_build }} != 'python' ]]; then
-              echo "Downloading duckdb-binaries-${{ inputs.duckdb_binary }} artifact from ${{ inputs.run_id }}..."
-              if gh run download ${{ inputs.run_id }} --repo ${{ env.GH_REPO }} -n duckdb-binaries-${{ inputs.duckdb_binary }}; then
+              echo "Downloading duckdb-binaries-${{ inputs.duckdb_binary }} artifact from $RUN_ID..."
+              if gh run download $RUN_ID --repo ${{ env.GH_REPO }} -n duckdb-binaries-${{ inputs.duckdb_binary }}; then
                 # echo "Artifact duckdb-binaries-${{ inputs.duckdb_binary }} is successfuly downloaded."
                 if [[ ${{ inputs.nightly_build }} == 'osx' ]]; then
                   unzip duckdb_cli-*.zip -d duckdb_path
@@ -93,7 +93,7 @@ jobs:
                 --nightly_build ${{ inputs.nightly_build }} \
                 --architecture ${{ inputs.duckdb_arch }} \
                 --run_id $RUN_ID \
-                --runs_on ${{ inputs.runner }} \
+                --runs_on ${{ inputs.runs_on }} \
                 --branch ${{ inputs.branch }}
 
       - name: Upload actions for extensions

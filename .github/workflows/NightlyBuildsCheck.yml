@@ -100,7 +100,7 @@ jobs:
       matrix:
         config: ${{ fromJson(needs.get-run-info.outputs.matrix) }}
     with:
-      runner: ${{ matrix.config.runner }}
+      runs_on: ${{ matrix.config.runs_on }}
       duckdb_arch: ${{ matrix.config.duckdb_arch }}
       duckdb_binary: ${{ matrix.config.duckdb_binary }}
       nightly_build: ${{ matrix.config.nigtly_build }}
