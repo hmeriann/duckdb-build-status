@@ -119,10 +119,10 @@ def main():
         # remove extension which is not distributed for nigthly builds
         if 'delta' in extensions:
             extensions.remove('delta')
-        extensions.append('ducklake')
     else:
         result=duckdb.sql('SELECT extension_name FROM duckdb_extensions();').fetchall()
         extensions = [row[0] for row in result]
+    extensions.append('ducklake')
 
     if nightly_build in SHOULD_BE_TESTED:
         if nightly_build == 'python':
