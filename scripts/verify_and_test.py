@@ -128,6 +128,7 @@ def main():
         result=duckdb.sql('SELECT extension_name FROM duckdb_extensions();').fetchall()
         extensions = [row[0] for row in result]
     extensions.append('ducklake')
+    print(extensions)
 
     if nightly_build in SHOULD_BE_TESTED:
         if nightly_build == 'python':
