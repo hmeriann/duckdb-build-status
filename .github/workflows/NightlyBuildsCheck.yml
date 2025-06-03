@@ -103,7 +103,7 @@ jobs:
       runs_on: ${{ matrix.config.runs_on }}
       duckdb_arch: ${{ matrix.config.duckdb_arch }}
       duckdb_binary: ${{ matrix.config.duckdb_binary }}
-      nightly_build: ${{ matrix.config.nigtly_build }}
+      nightly_build: ${{ matrix.config.nightly_build }}
       branch: ${{ github.ref_name }}
     
       # - run: echo ${{ matrix.config.branch }} ${{ matrix.config.nightly_build }} ${{ matrix.config.runs_on }} ${{ matrix.config.duckdb_arch }} 
