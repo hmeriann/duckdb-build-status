@@ -63,7 +63,7 @@ def get_value_for_key(key, build_job):
     value = duckdb.sql(f"""
         SELECT { key } 
         FROM read_json('{ build_job.get_build_job_file_name() }') 
-        # WHERE status = 'completed' 
+        WHERE status = 'completed' 
         ORDER BY createdAt DESC
         """).fetchone()[0]
     return value
