@@ -39,6 +39,7 @@ jobs:
     outputs:
       CURR_DATE: ${{ steps.curr-date.outputs.CURR_DATE }}
       matrix: ${{ steps.set-outputs.outputs.matrix }}
+      run_id: ${{ steps.get_run_id.outputs.run_id }}
     steps:
       - id: curr-date
         run: echo "CURR_DATE=$(date +%Y-%m-%d)" >> $GITHUB_OUTPUT
@@ -61,10 +62,12 @@ jobs:
       
       - name: Create Tables and Generate inputs.json
         shell: bash
+        id: get_run_id
         env:
           CURR_DATE: ${{ steps.curr-date.outputs.CURR_DATE }}
         run: |
-          python scripts/create_tables_and_inputs.py --branch "${{ github.ref_name }}" --event "${{ inputs.event }}"
+          run_id=$(python scripts/create_tables_and_inputs.py --branch "${{ github.ref_name }}" --event "${{ inputs.event }}")
+          echo "run_id=$run_id" >> $GITHUB_OUTPUT
 
       - name: Upload DuckDB file
         uses: actions/upload-artifact@v4
@@ -167,6 +170,10 @@ jobs:
     needs:
       - get-run-info 
       - run-tests
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.S3_DUCKDB_STAGING_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.S3_DUCKDB_STAGING_KEY }}
+      AWS_DEFAULT_REGION: us-east-2
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
@@ -214,7 +221,28 @@ jobs:
         with:
           name: REPORT-${{ github.ref_name }}
           path: ${{ needs.get-run-info.outputs.CURR_DATE }}-${{ github.ref_name }}.md
-  
+          
+      - name: Generate digests
+        shell: bash
+        run: |
+          # get a run_id
+          run_id=${{ needs.get-run-info.outputs.run_id }}
+          # download nightly release files from GH and generate digests
+          aws s3 ls --recursive s3://duckdb-staging/71c5c07cdd/v1.3.0/${{ env.GH_REPO }}/github_release | awk '{print $4}' > release-assets.txt 
+          cat release-assets.txt
+          for file_path in $(cat release-assets.txt); do 
+            aws s3 cp s3://duckdb-staging/$file_path .;
+            file=$(basename $file_path)
+            shasum -a 256 $file >> ${{ needs.get-run-info.outputs.CURR_DATE }}_checksum_${{ github.ref_name }}.txt;
+            rm $file; 
+          done
+
+      - name: Upload checksum file
+        uses: actions/upload-artifact@v4
+        with:
+          name: CHECKSUM_${{ github.ref_name }}
+          path: ${{ needs.get-run-info.outputs.CURR_DATE }}_checksum_${{ github.ref_name }}.txt
+
   push-reports:
     name: Push Reports
     if: ${{ inputs.should_publish == 'true' }}
@@ -234,6 +262,12 @@ jobs:
           pattern: REPORT*
           path: .
 
+      - name: Download checksum file
+        uses: actions/download-artifact@v4
+        with:
+          pattern: CHECKSUM*
+          path: .
+
       - name: Upload REPORT to the docs directory
         shell: bash
         env:
@@ -245,17 +279,40 @@ jobs:
           git config --global user.name ${{ env.CI_COMMIT_AUTHOR }}
           git config --global user.email ${{ env.CI_COMMIT_EMAIL }}
           
-          git config pull.rebase false
-          git pull origin main --allow-unrelated-histories
+          # git config pull.rebase false
+          # git pull origin main --allow-unrelated-histories
 
           mkdir -p docs/
           mkdir -p docs/${{ github.ref_name }}
+          mkdir -p docs/${{ github.ref_name }}/checksum
           
           mv REPORT*/${{ needs.get-run-info.outputs.CURR_DATE }}-${{ github.ref_name }}.md docs/${{ github.ref_name }}/
+          mv CHECKSUM*/${{ needs.get-run-info.outputs.CURR_DATE }}_checksum_${{ github.ref_name }}.txt docs/${{ github.ref_name }}/checksum
 
           ls -lah docs/${{ github.ref_name }}
+          ls -lah docs/${{ github.ref_name }}/checksum
 
-          git add docs/${{ github.ref_name }}/${{ needs.get-run-info.outputs.CURR_DATE }}-*.md
+          git add docs/${{ github.ref_name }}/${{ needs.get-run-info.outputs.CURR_DATE }}-${{ github.ref_name }}.md
+          git add docs/${{ github.ref_name }}/checksum/${{ needs.get-run-info.outputs.CURR_DATE }}_checksum_${{ github.ref_name }}.txt
           git commit -m "${{ env.CI_COMMIT_MESSAGE }}"
+          git push origin ${{ github.ref_name }}
+
+      - name: Checkout main
+        if: ${{ github.ref_name != 'main'}}
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/duckdb-build-status
+          ref: main
+          
+      - name: Push new report to main
+        if: ${{ github.ref_name != 'main'}}
+        shell: bash
+        run: |
+          report_file="docs/${{ github.ref_name }}/${{ needs.get-run-info.outputs.CURR_DATE }}-${{ github.ref_name }}.md"
+          checksum_file="docs/${{ github.ref_name }}/checksum/${{ needs.get-run-info.outputs.CURR_DATE }}_checksum_${{ github.ref_name }}.txt"
+          git fetch origin ${{ github.ref_name }}:${{ github.ref_name }}
+          git checkout ${{ github.ref_name }} -- $report_file
+          git checkout ${{ github.ref_name }} -- $checksum_file
+          git add $report_file $checksum_file
+          git commit -m "Adding $report_file and $checksum_file to main"
           git push origin main
-  

@@ -48,6 +48,7 @@ from shared_functions import BuildJob
 
 GH_REPO = os.environ.get('GH_REPO', 'duckdb/duckdb')
 DUCKDB_FILE = 'run_info_tables.duckdb'
+STAGING_FILE = 'staging.csv'
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--branch")
@@ -67,7 +68,16 @@ def get_value_for_key(key, build_job):
         """).fetchone()[0]
     return value
 
-def save_run_data_to_json_files(build_job, con, build_job_run_id):
+def run_aws_ls(staging_command):
+    result = subprocess.run(staging_command, capture_output=True, text=True)
+    return result
+
+def process_staged_files(output):
+    lines = output.strip().split('\n')
+    staged_files = [line.split()[-1] for line in lines if line.strip()]
+    return staged_files
+
+def save_run_data_to_json_files(build_job, con, build_job_run_id, on_tag):
     '''
     Fetches GH Actions data related to specified nightly-build and saves it into json files.
     As result "{build_job}.json", "{ build_job }_jobs.json" and "{ build_job }_artifacts.json"
@@ -89,17 +99,42 @@ def save_run_data_to_json_files(build_job, con, build_job_run_id):
     fetch_data(artifacts_command, build_job.get_artifacts_file_name())
     # get staged assets for run commit
     commit_sha = get_full_sha(build_job_run_id)[:10]
+    # duckdb-staging path for the release files has a release tag in it, so on release first command fails and we run is again with the path in it
     staging_command = [
             "aws", "s3", "ls", "--recursive", f"s3://duckdb-staging/{commit_sha}/{GH_REPO}/github_release"
         ]
-    fetch_data(staging_command, 'staging.csv')
-    # get assets list from latest release
-    expected_artifacts_command = [
-            "gh", "release", "view", "--repo", GH_REPO, "--json", "assets", "--jq", '.[].[].name'
+    staging_command_on_tag = [
+            "aws", "s3", "ls", "--recursive", f"s3://duckdb-staging/{commit_sha}/v1.3.0/{GH_REPO}/github_release"
         ]
+    staging_result = run_aws_ls(staging_command)
+    if staging_result.returncode != 0 or not staging_result.stdout.strip():
+        on_tag = True
+        staging_result = run_aws_ls(staging_command_on_tag)
+    if staging_result.returncode == 0:
+        files = process_staged_files(staging_result.stdout)
+        if files:
+            with open(STAGING_FILE, 'w') as f:
+                f.write('\n'.join(files))
+        else:
+            print(f"No files found for provided {commit_sha}")
+    else:
+        print(staging_result.stderr)
+        
+    if on_tag:
+        # get assets list from previous release
+        prev_tag = subprocess.run(["gh", "release", "list", "--limit", "2", "--json", "tagName", "--jq", "'.[1].tagName'"], stdout=True, stderr=True, check=True)
+        expected_artifacts_command = [
+                "gh", "release", "view", prev_tag, "--repo", GH_REPO, "--json", "assets", "--jq", '.[].[].name'
+            ]
+    else:
+        # get assets list from latest release
+        expected_artifacts_command = [
+                "gh", "release", "view", "--repo", GH_REPO, "--json", "assets", "--jq", '.[].[].name'
+            ]
     fetch_data(expected_artifacts_command, build_job.get_expected_artifacts_file_name())
+    return on_tag
 
-def create_tables_for_report(build_job, con):
+def create_tables_for_report(build_job, con, on_tag):
     '''
     In 'run_info_tables.duckdb' file creates '{ build_job }_gh_run_list', 'steps_{ build_job }'
         and 'artifacts_{ build_job }' tables from json files created on save_run_data_to_json_files()
@@ -128,19 +163,39 @@ def create_tables_for_report(build_job, con):
             SELECT * FROM read_csv('{ build_job.get_expected_artifacts_file_name() }', columns = {{'expected': 'VARCHAR'}})
         );
     """)
-    con.execute(f"""
-        CREATE OR REPLACE TABLE 'ACTUAL' AS (
-            SELECT * FROM read_csv(
-                'staging.csv',
-                delim = '/',
-                columns = {{
-                    'date_time': 'VARCHAR',
-                    'owner': 'VARCHAR',
-                    'repo': 'VARCHAR',
-                    'type': 'VARCHAR',
-                    'actual': 'VARCHAR' }})
-        );
-    """)
+    if on_tag:
+        con.execute(f"""
+            CREATE OR REPLACE TABLE 'ACTUAL' AS (
+                SELECT actual FROM (
+                    SELECT * FROM read_csv(
+                        {STAGING_FILE},
+                        delim = '/',
+                        columns = {{
+                            'date_time': 'VARCHAR',
+                            'tag': 'VARCHAR',
+                            'owner': 'VARCHAR',
+                            'repo': 'VARCHAR',
+                            'type': 'VARCHAR',
+                            'actual': 'VARCHAR' }})
+                            )
+            );
+        """)
+    else:
+            con.execute(f"""
+            CREATE OR REPLACE TABLE 'ACTUAL' AS (
+                SELECT actual FROM (
+                    SELECT * FROM read_csv(
+                        {STAGING_FILE},
+                        delim = '/',
+                        columns = {{
+                            'date_time': 'VARCHAR',
+                            'owner': 'VARCHAR',
+                            'repo': 'VARCHAR',
+                            'type': 'VARCHAR',
+                            'actual': 'VARCHAR' }})
+                        )
+            );
+        """)
     
     # check if the artifatcs table is not empty
     artifacts_count = con.execute(f"SELECT list_count(artifacts) FROM '{ build_job.get_artifact_table_name() }';").fetchone()[0]
@@ -153,8 +208,9 @@ def create_tables_for_report(build_job, con):
             CREATE OR REPLACE TABLE '{ build_job.get_artifacts_per_jobs_table_name() }' AS (
                 SELECT
                     t1.job_name AS "Build (Architecture)",
+                    t1.conclusion AS "Conclusion",
                     '[' || t2.name || '](' || '{ base_url }' || t2.artifact_id || ')' AS "Artifact",
-                    t2.digest AS "Digest"
+                    t2.updated_at AS "Uploaded at"
                 FROM (
                     SELECT
                         job_name,
@@ -182,8 +238,7 @@ def create_tables_for_report(build_job, con):
                         artifacts.name,
                         artifacts.expires_at expires_at,
                         artifacts.updated_at updated_at,
-                        artifacts.id artifact_id,
-                        artifacts.digest digest
+                        artifacts.id artifact_id
                     FROM (
                         SELECT
                             unnest(artifacts) artifacts
@@ -271,24 +326,24 @@ def get_tested_binaries_set(con, build_job):
         pattern = r'\[duckdb-binaries-([a-zA-Z]+)(?:-([a-zA-Z0-9]+))?\]'
         match = re.search(pattern, row[0])
         if match:
-            build_platform = match.group(1)
-            build_architecture = match.group(2) if match.group(2) else ''
+            build_platform = match.group(1) # windows | linux | osx
+            build_architecture = match.group(2) if match.group(2) else '' # arm64 | amd64 | ""
             if build_architecture:
                 tested_binaries.add(build_platform + "_" + build_architecture)
             elif build_platform == 'osx':
-                tested_binaries.add(build_platform + "_arm64")
+                tested_binaries.add(build_platform + "_arm64") # we have one universal binary, but want to test on both blatforms
                 tested_binaries.add(build_platform + "_amd64")
-            elif build_platform == 'linux':
+            elif build_platform == 'linux' and branch == 'v1.2-histrionicus':
                 tested_binaries.add(build_platform + "_amd64") # for duckdb-binaries-linux on v1.2
     return tested_binaries
 
 def create_inputs(build_job, con, build_job_run_id):
     matrix_data = []
     tested_binaries = get_tested_binaries_set(con, build_job)
-    print(tested_binaries)
+    # print(tested_binaries)
     extensions_artifacts = get_artifacts_list(con, build_job, "extensions")
     tested_builds_dict = {}
-    if branch == 'main':
+    if branch != 'v1.2-histrionicus':
         for row in extensions_artifacts:
             pattern =  r'\[duckdb-extensions-([a-zA-Z]+)_(amd64|arm64)'
             match = re.search(pattern, row[0])
@@ -351,19 +406,21 @@ def create_inputs(build_job, con, build_job_run_id):
 
 def main():
     build_job = BuildJob("InvokeCI")
+    on_tag=False
     if os.path.isfile(DUCKDB_FILE):
         os.remove(DUCKDB_FILE)
     con = duckdb.connect(DUCKDB_FILE)
     list_all_runs(con, build_job, branch, event)
     build_job_run_id = get_value_for_key("databaseId", build_job)
-    save_run_data_to_json_files(build_job, con, build_job_run_id)
-    create_tables_for_report(build_job, con)
+    on_tag = save_run_data_to_json_files(build_job, con, build_job_run_id, on_tag)
+    create_tables_for_report(build_job, con, on_tag)
     create_failed_jobs_table(build_job, con)
 
     matrix_data = create_inputs(build_job, con, build_job_run_id)
     with open(f"inputs_{ branch }.json", "w") as f:
         json.dump(matrix_data, f, indent=4)
     con.close()
+    print(build_job_run_id)
     
 if __name__ == "__main__":
     main()
