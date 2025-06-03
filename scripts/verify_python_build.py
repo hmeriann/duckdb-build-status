@@ -53,8 +53,9 @@ def list_builds_for_python_versions(run_id):
 
 def verify_and_test_python_linux(file_name, extensions, nightly_build, run_id, architecture, runs_on, full_sha, tested_platforms_file_name, branch):
     python_versions = list_builds_for_python_versions(run_id)
-    if runs_on.startswith("ubuntu"):
+    if runs_on.count("ubuntu"):
         for version in python_versions:
+            print("HERE")
             client = docker.from_env() # to use docker installed on GH Actions machine by the workflow
             arch = f"linux/{ architecture }"
             docker_image = f"python:{ version }"

@@ -29,7 +29,6 @@ from shared_functions import get_full_sha
 from verify_python_build import verify_and_test_python_linux
 
 GH_REPO = os.environ.get('GH_REPO', 'duckdb/duckdb')
-ACTIONS = ["INSTALL", "LOAD"]
 EXT_WHICH_DOESNT_EXIST = "EXT_WHICH_DOESNT_EXIST"
 SHOULD_BE_TESTED = ('python', 'osx', 'linux', 'windows')
 
@@ -65,7 +64,10 @@ def verify_version(tested_binary, full_sha):
     return sha_matching(short_sha, full_sha, tested_binary, architecture)
 
 def test_extensions(tested_binary, file_name, extensions, tested_platform):
+    ACTIONS = ["INSTALL", "LOAD"]
+    print("EXTENSIONS:", extensions)
     for ext in extensions:
+        print(ext)
         select_installed = [
             tested_binary,
             "-csv",
@@ -76,7 +78,10 @@ def test_extensions(tested_binary, file_name, extensions, tested_platform):
         subprocess_result = subprocess.run(select_installed, text=True, capture_output=True)
 
         is_installed = subprocess_result.stdout.strip()
-        if is_installed == 'false':
+        print(ext, is_installed)
+        if len(is_installed) == 0:
+            ACTIONS = ["FORCE INSTALL", "LOAD"]
+        if is_installed == 'false' or len(is_installed) == 0:
             for action in ACTIONS:
                 print(f"{ action } { ext }...")
                 install_ext = [
@@ -112,7 +117,7 @@ def main():
     arch = architecture.replace("/", "-")
     file_name = f"{ branch }_list_failed_ext_{ nightly_build }_{ arch }.csv"
     tested_platforms_file_name = f"{ branch }_tested_platforms_{ nightly_build }_{ arch }.csv"
-
+    extensions = []
     full_sha = get_full_sha(run_id)
     if branch == 'main':
         extensions = list_extensions()
@@ -122,6 +127,8 @@ def main():
     else:
         result=duckdb.sql('SELECT extension_name FROM duckdb_extensions();').fetchall()
         extensions = [row[0] for row in result]
+    extensions.append('ducklake')
+    print(extensions)
 
     if nightly_build in SHOULD_BE_TESTED:
         if nightly_build == 'python':
@@ -139,10 +146,9 @@ def main():
                 # write tested platform
                 subprocess_result = subprocess.run([ tested_binary, "--csv", "--noheader", "-c", "PRAGMA platform"], text=True, capture_output=True)
                 tested_platform = subprocess_result.stdout.strip()
-                print(tested_platform)
+                print("Tested platform:", tested_platform)
                 with open(tested_platforms_file_name, "a") as f:
                     f.write(f"{ nightly_build }_{ architecture },{ tested_platform }\n")
-                    print("HERE")
                 test_extensions(tested_binary, file_name, extensions, tested_platform)
             else:
                 non_matching_sha_file_name = f"{ branch }_non_matching_sha_{ nightly_build }_{ arch }.csv"

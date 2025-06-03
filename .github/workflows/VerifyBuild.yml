@@ -1,0 +1,108 @@
+name: Verify Build Artifacts Can Load Extensions
+on:
+  workflow_call:
+    inputs:
+      duckdb_arch:
+        type: string
+      runs_on:
+        type: string
+      nightly_build:
+        type: string
+      branch:
+        type: string
+      curr_date:
+        type: string
+      duckdb_binary:
+        type: string
+  workflow_dispatch:
+    inputs:
+      duckdb_arch:
+        description: ''
+        type: string
+      runs_on:
+        description: ''
+        type: string
+      nightly_build:
+        description: ''
+        type: string
+      branch:
+        description: ''
+        type: string
+      curr_date:
+        description: ''
+        type: string
+      duckdb_binary:
+        description: ''
+        type: string
+
+env:
+  GH_TOKEN: ${{ github.token }}
+  GH_REPO: duckdb/duckdb
+  GH_ISSUE_REPO: ${{ github.repository }}
+
+jobs:
+  run-tests:
+    name: ${{ inputs.branch }} - ${{ inputs.nightly_build }} ${{ inputs.duckdb_arch }} (${{ inputs.runs_on }})
+    continue-on-error: true
+    runs-on: ${{ inputs.runs_on }}
+    steps:
+      - run: echo ${{ inputs.branch }} ${{ inputs.nightly_build }} ${{ inputs.runs_on }} ${{ inputs.duckdb_arch }} 
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+            python-version: '3.11'
+
+      - name: Install Python dependencies
+        run: pip install duckdb docker
+            
+      - name: Checkout repo with the scripts
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/duckdb-build-status
+
+      - name: Checkout repo with extensions config file
+        uses: actions/checkout@v4
+        with:
+            sparse-checkout: |
+                .github/config
+            path: ext
+            repository: ${{ env.GH_REPO }}
+            
+      - name: Verify ${{ inputs.nightly_build }} ${{ inputs.duckdb_arch }} build version and Test extensions
+        id: verify-build
+        shell: bash
+        run: |
+            RUN_ID=$(gh run list --workflow "InvokeCI.yml" --repo duckdb/duckdb --branch v1.3-ossivalis --json databaseId,status,headBranch,headSha -q '.[0].databaseId')
+            if [[ ${{ inputs.nightly_build }} != 'python' ]]; then
+              echo "Downloading duckdb-binaries-${{ inputs.duckdb_binary }} artifact from $RUN_ID..."
+              if gh run download $RUN_ID --repo ${{ env.GH_REPO }} -n duckdb-binaries-${{ inputs.duckdb_binary }}; then
+                # echo "Artifact duckdb-binaries-${{ inputs.duckdb_binary }} is successfuly downloaded."
+                if [[ ${{ inputs.nightly_build }} == 'osx' ]]; then
+                  unzip duckdb_cli-*.zip -d duckdb_path
+                else
+                  if [[ ${{ inputs.branch }} != 'main' && ${{ inputs.nightly_build }} == 'linux' ]]; then
+                    unzip duckdb_cli-${{ inputs.nightly_build }}-${{ inputs.duckdb_arch }}.zip -d duckdb_path
+                  else
+                    unzip duckdb_cli-${{ inputs.duckdb_binary }}.zip -d duckdb_path
+                  fi
+                fi
+              fi
+            fi
+            echo "Verifying version and testing extensions..."
+            python scripts/verify_and_test.py \
+                --nightly_build ${{ inputs.nightly_build }} \
+                --architecture ${{ inputs.duckdb_arch }} \
+                --run_id $RUN_ID \
+                --runs_on ${{ inputs.runs_on }} \
+                --branch ${{ inputs.branch }}
+
+      - name: Upload actions for extensions
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.branch }}_ext_${{ inputs.nightly_build }}_${{ inputs.duckdb_arch }}
+          path: |
+            ${{ inputs.branch }}_list_failed_ext_${{ inputs.nightly_build }}_${{ inputs.duckdb_arch }}.csv
+            ${{ inputs.branch }}_non_matching_sha_${{ inputs.nightly_build }}_${{ inputs.duckdb_arch }}.csv
+            ${{ inputs.branch }}_tested_platforms_${{ inputs.nightly_build }}_${{ inputs.duckdb_arch }}.csv
+          if-no-files-found: ignore
