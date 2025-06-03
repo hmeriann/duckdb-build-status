@@ -29,7 +29,6 @@ from shared_functions import get_full_sha
 from verify_python_build import verify_and_test_python_linux
 
 GH_REPO = os.environ.get('GH_REPO', 'duckdb/duckdb')
-ACTIONS = ["INSTALL", "LOAD"]
 EXT_WHICH_DOESNT_EXIST = "EXT_WHICH_DOESNT_EXIST"
 SHOULD_BE_TESTED = ('python', 'osx', 'linux', 'windows')
 
@@ -65,6 +64,7 @@ def verify_version(tested_binary, full_sha):
     return sha_matching(short_sha, full_sha, tested_binary, architecture)
 
 def test_extensions(tested_binary, file_name, extensions, tested_platform):
+    ACTIONS = ["INSTALL", "LOAD"]
     print("EXTENSIONS:", extensions)
     for ext in extensions:
         print(ext)
