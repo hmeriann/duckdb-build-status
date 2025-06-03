@@ -106,69 +106,6 @@ jobs:
       nightly_build: ${{ matrix.config.nightly_build }}
       branch: ${{ github.ref_name }}
     
-      # - run: echo ${{ matrix.config.branch }} ${{ matrix.config.nightly_build }} ${{ matrix.config.runs_on }} ${{ matrix.config.duckdb_arch }} 
-      # - name: Set up Python
-      #   uses: actions/setup-python@v5
-      #   with:
-      #       python-version: '3.11'
-
-      # - name: Install Python dependencies
-      #   run: pip install duckdb docker
-            
-      # - name: Checkout repo with the scripts
-      #   uses: actions/checkout@v4
-      #   with:
-      #     repository: ${{ github.repository_owner }}/duckdb-build-status
-
-      # - name: Checkout repo with extensions config file
-      #   uses: actions/checkout@v4
-      #   with:
-      #       sparse-checkout: |
-      #           .github/config
-      #       path: ext
-      #       repository: ${{ env.GH_REPO }}
-            
-      # - name: Verify ${{ matrix.config.nightly_build }} ${{ matrix.config.duckdb_arch }} build version and Test extensions
-      #   id: verify-build
-      #   uses: ./.github/workflows/VerifyBuild.yml
-      #   shell: bash
-      #   env:
-      #     CURR_DATE: ${{ needs.get-run-info.outputs.CURR_DATE }}
-      #   run: |
-      #       if [[ ${{ matrix.config.nightly_build }} != 'python' ]]; then
-      #         echo "Downloading duckdb-binaries-${{ matrix.config.duckdb_binary }} artifact from ${{ matrix.config.run_id }}..."
-      #         if gh run download ${{ matrix.config.run_id }} --repo ${{ env.GH_REPO }} -n duckdb-binaries-${{ matrix.config.duckdb_binary }}; then
-      #           # echo "Artifact duckdb-binaries-${{ matrix.config.duckdb_binary }} is successfuly downloaded."
-      #           if [[ ${{ matrix.config.nightly_build }} == 'osx' ]]; then
-      #             unzip duckdb_cli-*.zip -d duckdb_path
-      #           else
-      #             if [[ ${{ matrix.config.branch }} != 'main' && ${{ matrix.config.nightly_build }} == 'linux' ]]; then
-      #               unzip duckdb_cli-${{ matrix.config.nightly_build }}-${{ matrix.config.duckdb_arch }}.zip -d duckdb_path
-      #             else
-      #               unzip duckdb_cli-${{ matrix.config.duckdb_binary }}.zip -d duckdb_path
-      #             fi
-      #           fi
-      #         fi
-      #       fi
-      #       echo "Verifying version and testing extensions..."
-      #       python scripts/verify_and_test.py \
-      #           --nightly_build ${{ matrix.config.nightly_build }} \
-      #           --architecture ${{ matrix.config.duckdb_arch }} \
-      #           --run_id ${{ matrix.config.run_id }} \
-      #           --runs_on ${{ matrix.config.runs_on }} \
-      #           --branch ${{ matrix.config.branch }}
-
-      # - name: Upload actions for extensions
-      #   if: always()
-      #   uses: actions/upload-artifact@v4
-      #   with:
-      #     name: ${{ matrix.config.branch }}_ext_${{ matrix.config.nightly_build }}_${{ matrix.config.duckdb_arch }}
-      #     path: |
-      #       ${{ matrix.config.branch }}_list_failed_ext_${{ matrix.config.nightly_build }}_${{ matrix.config.duckdb_arch }}.csv
-      #       ${{ matrix.config.branch }}_non_matching_sha_${{ matrix.config.nightly_build }}_${{ matrix.config.duckdb_arch }}.csv
-      #       ${{ matrix.config.branch }}_tested_platforms_${{ matrix.config.nightly_build }}_${{ matrix.config.duckdb_arch }}.csv
-      #     if-no-files-found: ignore
-    
   report:
     name: Create complete report
     runs-on: ubuntu-latest
