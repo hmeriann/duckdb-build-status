@@ -42,11 +42,11 @@ env:
 
 jobs:
   run-tests:
-    name: ${{ inputs.branch }} - ${{ inputs.nightly_build }} ${{ inputs.duckdb_arch }} (${{ inputs.runs_on }})
+    name: ${{ inputs.branch }} - ${{ inputs.nightly_build }} ${{ inputs.duckdb_arch }} (${{ inputs.runner }})
     continue-on-error: true
-    runs-on: ${{ inputs.runs_on }}
+    runs-on: ${{ inputs.runner }}
     steps:
-      - run: echo ${{ inputs.branch }} ${{ inputs.nightly_build }} ${{ inputs.runs_on }} ${{ inputs.duckdb_arch }} 
+      - run: echo ${{ inputs.branch }} ${{ inputs.nightly_build }} ${{ inputs.runner }} ${{ inputs.duckdb_arch }} 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -93,7 +93,7 @@ jobs:
                 --nightly_build ${{ inputs.nightly_build }} \
                 --architecture ${{ inputs.duckdb_arch }} \
                 --run_id $RUN_ID \
-                --runs_on ${{ inputs.runs_on }} \
+                --runs_on ${{ inputs.runner }} \
                 --branch ${{ inputs.branch }}
 
       - name: Upload actions for extensions
