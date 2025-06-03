@@ -159,7 +159,7 @@ def create_build_report(build_job, con):
                             GROUP BY "extension", "statement"
                             ORDER BY "extension"
                             )
-                        WHERE "statement" = 'INSTALL');
+                        WHERE "statement" = '%INSTALL');
                     """)
                     ext_results_table = con.execute(f"""
                         SELECT i."extension",
