@@ -2,23 +2,37 @@ name: Verify Build Artifacts Can Load Extensions
 on:
   workflow_call:
     inputs:
-      runner:
-        type: string
       duckdb_arch:
         type: string
-      runs_on:
+      runner:
         type: string
       nightly_build:
         type: string
       branch:
         type: string
+      curr_date:
+        type: string
+      duckdb_binary:
+        type: string
   workflow_dispatch:
     inputs:
-      event:
-        description: event triggered the run (repository_dispatch - for `main`)
+      duckdb_arch:
+        description: ''
         type: string
-      should_publish:
-        description: true - to publish the report
+      runner:
+        description: ''
+        type: string
+      nightly_build:
+        description: ''
+        type: string
+      branch:
+        description: ''
+        type: string
+      curr_date:
+        description: ''
+        type: string
+      duckdb_binary:
+        description: ''
         type: string
 
 concurrency:
@@ -61,9 +75,8 @@ jobs:
       - name: Verify ${{ inputs.nightly_build }} ${{ inputs.duckdb_arch }} build version and Test extensions
         id: verify-build
         shell: bash
-        env:
-          CURR_DATE: ${{ needs.get-run-info.outputs.CURR_DATE }}
         run: |
+            RUN_ID=$(gh run list --workflow "InvokeCI.yml" --repo duckdb/duckdb --branch v1.3-ossivalis --json databaseId,status,headBranch,headSha -q '.[0].databaseId')
             if [[ ${{ inputs.nightly_build }} != 'python' ]]; then
               echo "Downloading duckdb-binaries-${{ inputs.duckdb_binary }} artifact from ${{ inputs.run_id }}..."
               if gh run download ${{ inputs.run_id }} --repo ${{ env.GH_REPO }} -n duckdb-binaries-${{ inputs.duckdb_binary }}; then
@@ -83,7 +96,7 @@ jobs:
             python scripts/verify_and_test.py \
                 --nightly_build ${{ inputs.nightly_build }} \
                 --architecture ${{ inputs.duckdb_arch }} \
-                --run_id ${{ inputs.run_id }} \
+                --run_id $RUN_ID \
                 --runs_on ${{ inputs.runs_on }} \
                 --branch ${{ inputs.branch }}
 
