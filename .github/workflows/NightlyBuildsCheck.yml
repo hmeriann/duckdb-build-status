@@ -95,44 +95,42 @@ jobs:
     needs: 
       - get-run-info
     if: ${{ fromJson(needs.get-run-info.outputs.matrix) != '[]' }}
+    uses: ./.github/workflows/VerifyBuild.yml
     strategy:
       matrix:
         config: ${{ fromJson(needs.get-run-info.outputs.matrix) }}
-    continue-on-error: true
-    runs-on: ${{ matrix.config.runs_on }}
-    steps:
-      - run: echo ${{ matrix.config.branch }} ${{ matrix.config.nightly_build }} ${{ matrix.config.runs_on }} ${{ matrix.config.duckdb_arch }} 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-            python-version: '3.11'
+    with:
+      runner: ${{ matrix.config.runner }}
+      duckdb_arch: ${{ matrix.config.duckdb_arch }}
+      duckdb_binary: ${{ matrix.config.duckdb_binary }}
+      nightly_build: ${{ matrix.config.nigtly_build }}
+      branch: ${{ github.ref_name }}
+    
+      # - run: echo ${{ matrix.config.branch }} ${{ matrix.config.nightly_build }} ${{ matrix.config.runs_on }} ${{ matrix.config.duckdb_arch }} 
+      # - name: Set up Python
+      #   uses: actions/setup-python@v5
+      #   with:
+      #       python-version: '3.11'
 
-      - name: Install Python dependencies
-        run: pip install duckdb docker
+      # - name: Install Python dependencies
+      #   run: pip install duckdb docker
             
-      - name: Checkout repo with the scripts
-        uses: actions/checkout@v4
-        with:
-          repository: ${{ github.repository_owner }}/duckdb-build-status
+      # - name: Checkout repo with the scripts
+      #   uses: actions/checkout@v4
+      #   with:
+      #     repository: ${{ github.repository_owner }}/duckdb-build-status
 
-      - name: Checkout repo with extensions config file
-        uses: actions/checkout@v4
-        with:
-            sparse-checkout: |
-                .github/config
-            path: ext
-            repository: ${{ env.GH_REPO }}
+      # - name: Checkout repo with extensions config file
+      #   uses: actions/checkout@v4
+      #   with:
+      #       sparse-checkout: |
+      #           .github/config
+      #       path: ext
+      #       repository: ${{ env.GH_REPO }}
             
-      - name: Verify ${{ matrix.config.nightly_build }} ${{ matrix.config.duckdb_arch }} build version and Test extensions
-        id: verify-build
-        uses: ./.github/workflows/VerifyBuild.yml
-        with:
-          runner: ${{ matrix.config.runner }}
-          duckdb_arch: ${{ matrix.config.duckdb_arch }}
-          duckdb_binary: ${{ matrix.config.duckdb_binary }}
-          nightly_build: ${{ matrix.config.nigtly_build }}
-          branch: ${{ github.ref_name }}
-
+      # - name: Verify ${{ matrix.config.nightly_build }} ${{ matrix.config.duckdb_arch }} build version and Test extensions
+      #   id: verify-build
+      #   uses: ./.github/workflows/VerifyBuild.yml
       #   shell: bash
       #   env:
       #     CURR_DATE: ${{ needs.get-run-info.outputs.CURR_DATE }}
