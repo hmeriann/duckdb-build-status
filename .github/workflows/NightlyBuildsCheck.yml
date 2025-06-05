@@ -105,6 +105,7 @@ jobs:
       duckdb_binary: ${{ matrix.config.duckdb_binary }}
       nightly_build: ${{ matrix.config.nightly_build }}
       branch: ${{ github.ref_name }}
+      workflow_name: "InvokeCI.yml"
     
   report:
     name: Create complete report
