@@ -69,7 +69,6 @@ def test_extensions(tested_binary, file_name, extensions, tested_platform):
     ACTIONS = ["INSTALL", "LOAD"]
     print("EXTENSIONS:", extensions)
     for ext in extensions:
-        print(ext)
         if local:
             query = f"SET extension_directory='duckdb_path'; SELECT installed FROM duckdb_extensions() WHERE extension_name='{ ext }';"
         else:

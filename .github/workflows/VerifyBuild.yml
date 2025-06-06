@@ -133,7 +133,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ inputs.branch }}_ext_${{ inputs.nightly_build }}_${{ inputs.duckdb_arch }}
+          name: LOCAL_${{ inputs.branch }}_ext_${{ inputs.nightly_build }}_${{ inputs.duckdb_arch }}
           path: |
             ${{ inputs.branch }}*${{ inputs.duckdb_arch }}.csv
           if-no-files-found: ignore
