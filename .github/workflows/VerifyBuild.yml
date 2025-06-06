@@ -115,11 +115,8 @@ jobs:
         run: |
             if [[ ${{ inputs.nightly_build }} != 'python' ]]; then
               echo "Downloading duckdb-extensions-${{ inputs.duckdb_arch }} artifact from ${{ steps.get-run-id.outputs.RUN_ID }}..."
-              if gh run download ${{ steps.get-run-id.outputs.RUN_ID }} --repo ${{ env.GH_REPO }} -n duckdb-extensions-${{ inputs.nightly_build }}_${{ inputs.duckdb_arch }} ; then
+              if gh run download ${{ steps.get-run-id.outputs.RUN_ID }} --repo ${{ env.GH_REPO }} -n duckdb-extensions-${{ inputs.nightly_build }}_${{ inputs.duckdb_arch }} --dir duckdb_path; then
                 # echo "Artifact duckdb-extensions-${{ inputs.nightly_build }}_${{ inputs.duckdb_arch }} is successfuly downloaded."
-                # unzip duckdb_extensions-${{ inputs.nightly_build }}_${{ inputs.duckdb_arch }}.zip -d duckdb_path
-                ls -lah
-                mv duckdb_extensions-${{ inputs.nightly_build }}_${{ inputs.duckdb_arch }}/ duckdb_path 
               fi
             fi
             echo "Verifying version and testing extensions from local path..."
