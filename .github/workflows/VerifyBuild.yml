@@ -126,7 +126,8 @@ jobs:
                 --architecture ${{ inputs.duckdb_arch }} \
                 --run_id ${{ steps.get-run-id.outputs.RUN_ID }} \
                 --runs_on ${{ inputs.runs_on }} \
-                --branch ${{ inputs.branch }}
+                --branch ${{ inputs.branch }} \
+                --local True
 
       - name: Upload actions for extensions
         if: always()
