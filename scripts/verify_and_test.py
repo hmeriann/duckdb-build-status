@@ -120,7 +120,7 @@ def test_extensions(tested_binary, file_name, extensions, tested_platform):
 
 def main():
     arch = architecture.replace("/", "-")
-    file_name = f"{ branch }_list_failed_ext_{ nightly_build }_{ arch }.csv"
+    file_name = f"{ branch }_list_failed_ext_{ nightly_build }_{ arch }_local_{ local }.csv"
     tested_platforms_file_name = f"{ branch }_tested_platforms_{ nightly_build }_{ arch }.csv"
     extensions = []
     full_sha = get_full_sha(run_id)
