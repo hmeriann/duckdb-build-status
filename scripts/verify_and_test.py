@@ -127,7 +127,6 @@ def main():
     else:
         result=duckdb.sql('SELECT extension_name FROM duckdb_extensions();').fetchall()
         extensions = [row[0] for row in result]
-    extensions.append('ducklake')
     print(extensions)
 
     if nightly_build in SHOULD_BE_TESTED:
@@ -153,7 +152,7 @@ def main():
             else:
                 non_matching_sha_file_name = f"{ branch }_non_matching_sha_{ nightly_build }_{ arch }.csv"
                 with open(non_matching_sha_file_name, 'a') as f:
-                    f.write(f"{ nightly_build }{ version },{ architecture }\n")
+                    f.write(f"{ nightly_build },{ architecture }\n")
 
 if __name__ == "__main__":
     main()

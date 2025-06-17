@@ -50,6 +50,8 @@ jobs:
     name: ${{ inputs.branch }} - ${{ inputs.nightly_build }} ${{ inputs.duckdb_arch }} (${{ inputs.runs_on }})
     continue-on-error: true
     runs-on: ${{ inputs.runs_on }}
+    outputs:
+        RUN_ID: ${{ steps.get-run-id.outputs.RUN_ID }}
     steps:
       - run: echo ${{ inputs.branch }} ${{ inputs.nightly_build }} ${{ inputs.runs_on }} ${{ inputs.duckdb_arch }} 
       - name: Set up Python
@@ -72,15 +74,21 @@ jobs:
                 .github/config
             path: ext
             repository: ${{ env.GH_REPO }}
-            
+    
+      - name: Get Run Id
+        id: get-run-id
+        shell: bash
+        run: |
+            RUN_ID=$(gh run list --workflow 'InvokeCI.yml' --repo ${{ env.GH_REPO }} --branch ${{ inputs.branch }} --json databaseId,status,headBranch,headSha -q '.[0].databaseId')
+            echo "RUN_ID=$RUN_ID" >> $GITHUB_OUTPUT
+    
       - name: Verify ${{ inputs.nightly_build }} ${{ inputs.duckdb_arch }} build version and Test extensions
         id: verify-build
         shell: bash
         run: |
-            RUN_ID=$(gh run list --workflow 'InvokeCI.yml' --repo ${{ env.GH_REPO }} --branch ${{ inputs.branch }} --json databaseId,status,headBranch,headSha -q '.[0].databaseId')
             if [[ ${{ inputs.nightly_build }} != 'python' ]]; then
-              echo "Downloading duckdb-binaries-${{ inputs.duckdb_binary }} artifact from $RUN_ID..."
-              if gh run download $RUN_ID --repo ${{ env.GH_REPO }} -n duckdb-binaries-${{ inputs.duckdb_binary }}; then
+              echo "Downloading duckdb-binaries-${{ inputs.duckdb_binary }} artifact from ${{ steps.get-run-id.outputs.RUN_ID }}..."
+              if gh run download ${{ steps.get-run-id.outputs.RUN_ID }} --repo ${{ env.GH_REPO }} -n duckdb-binaries-${{ inputs.duckdb_binary }}; then
                 # echo "Artifact duckdb-binaries-${{ inputs.duckdb_binary }} is successfuly downloaded."
                 if [[ ${{ inputs.nightly_build }} == 'osx' ]]; then
                   unzip duckdb_cli-*.zip -d duckdb_path
@@ -97,7 +105,7 @@ jobs:
             python scripts/verify_and_test.py \
                 --nightly_build ${{ inputs.nightly_build }} \
                 --architecture ${{ inputs.duckdb_arch }} \
-                --run_id $RUN_ID \
+                --run_id ${{ steps.get-run-id.outputs.RUN_ID }} \
                 --runs_on ${{ inputs.runs_on }} \
                 --branch ${{ inputs.branch }}
 
@@ -107,7 +115,5 @@ jobs:
         with:
           name: ${{ inputs.branch }}_ext_${{ inputs.nightly_build }}_${{ inputs.duckdb_arch }}
           path: |
-            ${{ inputs.branch }}_list_failed_ext_${{ inputs.nightly_build }}_${{ inputs.duckdb_arch }}.csv
-            ${{ inputs.branch }}_non_matching_sha_${{ inputs.nightly_build }}_${{ inputs.duckdb_arch }}.csv
-            ${{ inputs.branch }}_tested_platforms_${{ inputs.nightly_build }}_${{ inputs.duckdb_arch }}.csv
+            ${{ inputs.branch }}*${{ inputs.duckdb_arch }}*.csv
           if-no-files-found: ignore
