@@ -271,20 +271,23 @@ def create_build_report(build_job, con):
             pr_f = ['- ' + pf[0] for pf in previously_failed]
             f.write('\n'.join(pr_f) + '\n')
         
-        f.write(f"\n### Difference Between Latest Release Assets and Staged Assets from Current Run\nMatched assets names are hidden.\n\n")
-        extensions_lists = con.execute(f"""
+        extensions_list_query = """
             SELECT 
                 expected AS 'Latest Release Assets not found in Nightly Release',
                 actual AS 'Nightly Release Assets not found in Latest Release Assets'
             FROM extensions_lists ORDER BY ALL;
-        """).df()
-        f.write(extensions_lists.to_markdown(index=False) + "\n")
-        f.write(f"\n### Workflow Artifacts\n\n")
-        artifacts_per_job = con.execute(f"""
-            SELECT * FROM '{ build_job.get_artifacts_per_jobs_table_name() }'
-            ORDER BY "Build (Architecture)" ASC;
-            """).df()
-        f.write(artifacts_per_job.to_markdown(index=False) + "\n")
+        """
+        extensions_count = len(con.execute(extensions_list_query).fetchall())
+        if extensions_count > 0:
+            f.write(f"\n### Difference Between Latest Release Assets and Staged Assets from Current Run\nMatched assets names are hidden.\n\n")
+            extensions_lists = con.execute(extensions_list_query).df()
+            f.write(extensions_lists.to_markdown(index=False) + "\n")
+            f.write(f"\n### Workflow Artifacts\n\n")
+            artifacts_per_job = con.execute(f"""
+                SELECT * FROM '{ build_job.get_artifacts_per_jobs_table_name() }'
+                ORDER BY "Build (Architecture)" ASC;
+                """).df()
+            f.write(artifacts_per_job.to_markdown(index=False) + "\n")
         
         # add a link to the file to the REPORT
         f.write(f"\n\n> Nightly builds assets digest 256sha info can be found in the [checksum file](https://duckdb.github.io/duckdb-build-status/docs/v1.3-ossivalis/checksum/{ CURR_DATE }_checksum_{ branch }.txt)")
