@@ -38,7 +38,6 @@ parser.add_argument("--architecture")
 parser.add_argument("--run_id")
 parser.add_argument("--runs_on")
 parser.add_argument("--branch")
-parser.add_argument("--local", default=False)
 
 args = parser.parse_args()
 
@@ -47,7 +46,6 @@ architecture = args.architecture
 run_id = args.run_id
 runs_on = args.runs_on # linux-latest
 branch = args.branch
-local = args.local
 
 def get_full_sha(run_id):
     gh_headSha_command = [
@@ -69,16 +67,13 @@ def test_extensions(tested_binary, file_name, extensions, tested_platform):
     ACTIONS = ["INSTALL", "LOAD"]
     print("EXTENSIONS:", extensions)
     for ext in extensions:
-        if local:
-            query = f"SET extension_directory='duckdb_path'; SELECT installed FROM duckdb_extensions() WHERE extension_name='{ ext }';"
-        else:
-            query = f"SELECT installed FROM duckdb_extensions() WHERE extension_name='{ ext }';"
+        print(ext)
         select_installed = [
             tested_binary,
             "-csv",
             "-noheader",
             "-c",
-            query
+            f"SELECT installed FROM duckdb_extensions() WHERE extension_name='{ ext }';"
         ]
         subprocess_result = subprocess.run(select_installed, text=True, capture_output=True)
 
@@ -120,7 +115,7 @@ def test_extensions(tested_binary, file_name, extensions, tested_platform):
 
 def main():
     arch = architecture.replace("/", "-")
-    file_name = f"{ branch }_list_failed_ext_{ nightly_build }_{ arch }_local_{ local }.csv"
+    file_name = f"{ branch }_list_failed_ext_{ nightly_build }_{ arch }.csv"
     tested_platforms_file_name = f"{ branch }_tested_platforms_{ nightly_build }_{ arch }.csv"
     extensions = []
     full_sha = get_full_sha(run_id)
@@ -132,13 +127,11 @@ def main():
     else:
         result=duckdb.sql('SELECT extension_name FROM duckdb_extensions();').fetchall()
         extensions = [row[0] for row in result]
-    extensions.append('ducklake')
-    print(local)
     print(extensions)
 
     if nightly_build in SHOULD_BE_TESTED:
         if nightly_build == 'python':
-            verify_and_test_python_linux(file_name, extensions, nightly_build, run_id, architecture, runs_on, full_sha, tested_platforms_file_name, branch, local)
+            verify_and_test_python_linux(file_name, extensions, nightly_build, run_id, architecture, runs_on, full_sha, tested_platforms_file_name, branch)
         else:
             path_pattern = os.path.join("duckdb_path", "duckdb*")
             matches = glob.glob(path_pattern)
@@ -148,7 +141,7 @@ def main():
                 print(f"Found binary: { tested_binary }")
             else:
                 raise FileNotFoundError(f"No binary matching { path_pattern } found in duckdb_path dir.")
-            if verify_version(tested_binary, full_sha) or local:
+            if verify_version(tested_binary, full_sha):
                 # write tested platform
                 subprocess_result = subprocess.run([ tested_binary, "--csv", "--noheader", "-c", "PRAGMA platform"], text=True, capture_output=True)
                 tested_platform = subprocess_result.stdout.strip()
@@ -159,7 +152,7 @@ def main():
             else:
                 non_matching_sha_file_name = f"{ branch }_non_matching_sha_{ nightly_build }_{ arch }.csv"
                 with open(non_matching_sha_file_name, 'a') as f:
-                    f.write(f"{ nightly_build }{ version },{ architecture }\n")
+                    f.write(f"{ nightly_build },{ architecture }\n")
 
 if __name__ == "__main__":
     main()
