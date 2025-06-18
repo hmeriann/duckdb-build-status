@@ -76,11 +76,7 @@ def test_extensions(tested_binary, file_name, extensions, tested_platform):
             f"SELECT installed FROM duckdb_extensions() WHERE extension_name='{ ext }';"
         ]
         subprocess_result = subprocess.run(select_installed, text=True, capture_output=True)
-
         is_installed = subprocess_result.stdout.strip()
-        print(ext, is_installed)
-        if len(is_installed) == 0:
-            ACTIONS = ["FORCE INSTALL", "LOAD"]
         if is_installed == 'false' or len(is_installed) == 0:
             for action in ACTIONS:
                 print(f"{ action } { ext }...")
