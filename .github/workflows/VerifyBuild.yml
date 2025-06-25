@@ -14,8 +14,8 @@ on:
         type: string
       duckdb_binary:
         type: string
-    #   workflow_name:
-    #     type: string
+      run_id:
+        type: string
   workflow_dispatch:
     inputs:
       duckdb_arch:
@@ -36,9 +36,9 @@ on:
       duckdb_binary:
         description: ''
         type: string
-    #   workflow_name:
-    #     description: ''
-    #     type: string
+      run_id:
+        description: ''
+        type: string
 
 env:
   GH_TOKEN: ${{ github.token }}
@@ -79,7 +79,11 @@ jobs:
         id: get-run-id
         shell: bash
         run: |
-            RUN_ID=$(gh run list --workflow 'InvokeCI.yml' --repo ${{ env.GH_REPO }} --branch ${{ inputs.branch }} --json databaseId,status,headBranch,headSha -q '.[0].databaseId')
+            if ${{ inputs.run_id == '0' }}; then
+                RUN_ID=$(gh run list --workflow 'InvokeCI.yml' --repo ${{ env.GH_REPO }} --branch ${{ inputs.branch }} --json databaseId,status,headBranch,headSha -q '.[0].databaseId')
+            else
+                RUN_ID=${{inputs.run_id}}
+            fi
             echo "RUN_ID=$RUN_ID" >> $GITHUB_OUTPUT
     
       - name: Verify ${{ inputs.nightly_build }} ${{ inputs.duckdb_arch }} build version and Test extensions
