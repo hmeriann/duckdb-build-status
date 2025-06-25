@@ -259,4 +259,4 @@ jobs:
           git checkout ${{ github.ref_name }} -- $checksum_file
           git add $report_file $checksum_file
           git commit -m "Adding $report_file and $checksum_file to main"
-          git push origin main
+          git push -f origin main
