@@ -42,7 +42,7 @@ on:
 
 env:
   GH_TOKEN: ${{ github.token }}
-  GH_REPO: duckdb/duckdb
+  GH_REPO: ${{ github.repository_owner }}/duckdb
   GH_ISSUE_REPO: ${{ github.repository }}
 
 jobs:
