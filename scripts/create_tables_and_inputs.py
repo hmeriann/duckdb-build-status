@@ -130,6 +130,7 @@ def save_run_data_to_json_files(build_job, con, build_job_run_id, on_tag):
                 ]
         except subprocess.CalledProcessError as e:
             print(f"Failed to get previous release tag: {e}, falling back to latest release.")
+        # get assets list from latest release
         expected_artifacts_command = [
             "gh", "release", "view", "--repo", GH_REPO, "--json", "assets", "--jq", '.[].[].name'
         ]
