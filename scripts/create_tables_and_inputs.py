@@ -121,11 +121,18 @@ def save_run_data_to_json_files(build_job, con, build_job_run_id, on_tag):
         print(staging_result.stderr)
         
     if on_tag:
-        # get assets list from previous release
-        prev_tag = subprocess.run(["gh", "release", "list", "--limit", "2", "--json", "tagName", "--jq", "'.[1].tagName'"], stdout=True, stderr=True, check=True)
+        try:
+            # get assets list from previous release
+            result = subprocess.run(["gh", "release", "list", "--limit", "2", "--json", "tagName", "--jq", "'.[1].tagName'"], stdout=True, stderr=True, check=True)
+            prev_tag = result.stdout.strip()
+            expected_artifacts_command = [
+                    "gh", "release", "view", prev_tag, "--repo", GH_REPO, "--json", "assets", "--jq", '.[].[].name'
+                ]
+        except subprocess.CalledProcessError as e:
+            print(f"Failed to get previous release tag: {e}, falling back to latest release.")
         expected_artifacts_command = [
-                "gh", "release", "view", prev_tag, "--repo", GH_REPO, "--json", "assets", "--jq", '.[].[].name'
-            ]
+            "gh", "release", "view", "--repo", GH_REPO, "--json", "assets", "--jq", '.[].[].name'
+        ]
     else:
         # get assets list from latest release
         expected_artifacts_command = [
@@ -163,6 +170,7 @@ def create_tables_for_report(build_job, con, on_tag):
             SELECT * FROM read_csv('{ build_job.get_expected_artifacts_file_name() }', columns = {{'expected': 'VARCHAR'}})
         );
     """)
+
     if on_tag:
         con.execute(f"""
             CREATE OR REPLACE TABLE 'ACTUAL' AS (
