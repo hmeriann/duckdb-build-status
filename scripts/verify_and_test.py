@@ -116,7 +116,7 @@ def main():
     extensions = []
     full_sha = get_full_sha(run_id)
     if branch == 'main':
-        extensions = list_extensions()
+        extensions = list_extensions(branch)
         # remove extension which is not distributed for nigthly builds
         if 'delta' in extensions:
             extensions.remove('delta')

@@ -82,20 +82,20 @@ def list_all_runs(con, build_job, branch, event):
     gh_run_list_file = build_job.get_build_job_file_name()
     fetch_data(gh_run_list_command, gh_run_list_file)
 
-def get_extensions_from(config) :
+def get_extensions_from(config, branch) :
     with open(config, "r") as file:
         content = file.read()
     # matching each word after `load(`
-    pattern = r"duckdb_extension_load\((\w+)"
+    pattern = r"duckdb_extension_load\((\w+)" if branch != 'main' else r"include.*\/(\w+).cmake"
     matches = re.findall(pattern, content)
     return matches
 
-def list_extensions():
+def list_extensions(branch):
     extensions = []
     matches = glob.glob(EXT_PATH_PATTERN)
     if matches:
         for match in matches:
-            extensions += get_extensions_from(match)
+            extensions += get_extensions_from(match, branch)
     extensions = list(set(extensions))
     return extensions
 
