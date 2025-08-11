@@ -49,6 +49,7 @@ from shared_functions import BuildJob
 GH_REPO = os.environ.get('GH_REPO', 'duckdb/duckdb')
 DUCKDB_FILE = 'run_info_tables.duckdb'
 STAGING_FILE = 'staging.csv'
+JOB_OUTPUTS_FILE = os.environ["GITHUB_OUTPUT"]
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--branch")
@@ -103,8 +104,17 @@ def save_run_data_to_json_files(build_job, con, build_job_run_id, on_tag):
     staging_command = [
             "aws", "s3", "ls", "--recursive", f"s3://duckdb-staging/{commit_sha}/{GH_REPO}/github_release"
         ]
-    previous_version_tag = subprocess.check_output(["git", "tag", "--sort=-creatordate"], text=True).splitlines()[1]
-    previous_tag = previous_version_tag if previous_version_tag.startswith('v') else ""
+    previous_version_tag = subprocess.check_output(
+        [
+            "git", "ls-remote", "--tags", "--refs", "https://github.com/duckdb/duckdb.git"
+        ], text=True).splitlines()[-2]
+    previous_tag = previous_version_tag.split("/")[-1] # the last piece of line: '2063dda3e6bd955c364ce8e61939c6248a907be6  refs/tags/v1.3.1'
+    previous_sha = previous_version_tag.split('\t')[0][:10]
+    # save prvious_tag to the job outputs
+    with open(JOB_OUTPUTS_FILE, "a") as f:
+        print(f"previous_tag={previous_tag}", file=f)
+        print(f"previous_sha={previous_sha}", file=f)
+
     staging_command_on_tag = [
             "aws", "s3", "ls", "--recursive", f"s3://duckdb-staging/{commit_sha}/{previous_tag}/{GH_REPO}/github_release"
         ]
@@ -125,10 +135,10 @@ def save_run_data_to_json_files(build_job, con, build_job_run_id, on_tag):
     if on_tag:
         try:
             # get assets list from previous release
-            result = subprocess.run(["gh", "release", "list", "--limit", "2", "--json", "tagName", "--jq", "'.[1].tagName'"], stdout=True, stderr=True, check=True)
-            prev_tag = result.stdout.strip()
+            # result = subprocess.run(["gh", "release", "list", "--limit", "2", "--json", "tagName", "--jq", "'.[1].tagName'"], stdout=True, stderr=True, check=True)
+            # prev_tag = result.stdout.strip()
             expected_artifacts_command = [
-                    "gh", "release", "view", prev_tag, "--repo", GH_REPO, "--json", "assets", "--jq", '.[].[].name'
+                    "gh", "release", "view", previous_tag, "--repo", GH_REPO, "--json", "assets", "--jq", '.[].[].name'
                 ]
         except subprocess.CalledProcessError as e:
             print(f"Failed to get previous release tag: {e}, falling back to latest release.")
@@ -437,7 +447,9 @@ def main():
     with open(f"inputs_{ branch }.json", "w") as f:
         json.dump(matrix_data, f, indent=4)
     con.close()
-    print(build_job_run_id)
+    with open(JOB_OUTPUTS_FILE, 'a') as f:
+        print(f"run_id={build_job_run_id}", file=f)
+    # print(build_job_run_id)
     
 if __name__ == "__main__":
     main()
