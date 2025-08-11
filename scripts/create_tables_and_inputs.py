@@ -121,11 +121,19 @@ def save_run_data_to_json_files(build_job, con, build_job_run_id, on_tag):
         print(staging_result.stderr)
         
     if on_tag:
-        # get assets list from previous release
-        prev_tag = subprocess.run(["gh", "release", "list", "--limit", "2", "--json", "tagName", "--jq", "'.[1].tagName'"], stdout=True, stderr=True, check=True)
+        try:
+            # get assets list from previous release
+            result = subprocess.run(["gh", "release", "list", "--limit", "2", "--json", "tagName", "--jq", "'.[1].tagName'"], stdout=True, stderr=True, check=True)
+            prev_tag = result.stdout.strip()
+            expected_artifacts_command = [
+                    "gh", "release", "view", prev_tag, "--repo", GH_REPO, "--json", "assets", "--jq", '.[].[].name'
+                ]
+        except subprocess.CalledProcessError as e:
+            print(f"Failed to get previous release tag: {e}, falling back to latest release.")
+        # get assets list from latest release
         expected_artifacts_command = [
-                "gh", "release", "view", prev_tag, "--repo", GH_REPO, "--json", "assets", "--jq", '.[].[].name'
-            ]
+            "gh", "release", "view", "--repo", GH_REPO, "--json", "assets", "--jq", '.[].[].name'
+        ]
     else:
         # get assets list from latest release
         expected_artifacts_command = [
@@ -163,6 +171,7 @@ def create_tables_for_report(build_job, con, on_tag):
             SELECT * FROM read_csv('{ build_job.get_expected_artifacts_file_name() }', columns = {{'expected': 'VARCHAR'}})
         );
     """)
+
     if on_tag:
         con.execute(f"""
             CREATE OR REPLACE TABLE 'ACTUAL' AS (
@@ -308,11 +317,11 @@ def get_runner(platform, architecture):
         case _:
             return "ubuntu-24.04-arm" if architecture in ('arm64', 'aarch64') else "ubuntu-latest"
 
-def get_artifacts_list(con, build_job, artifatc_type):
+def get_artifacts_list(con, build_job, artifatct_type):
     artifacts = con.execute(f"""
         SELECT Artifact
         FROM '{ build_job.get_artifacts_per_jobs_table_name() }'
-        WHERE Artifact LIKE '[duckdb-{ artifatc_type }%';
+        WHERE Artifact LIKE '[%-{ artifatct_type }-%';
     """).fetchall()
     return artifacts
 
@@ -345,11 +354,15 @@ def create_inputs(build_job, con, build_job_run_id):
     tested_builds_dict = {}
     if branch != 'v1.2-histrionicus':
         for row in extensions_artifacts:
-            pattern =  r'\[duckdb-extensions-([a-zA-Z]+)_(amd64|arm64)'
+            if branch == 'main':
+                pattern = r'\[(main|rust-based)-extensions-.*-extension-([a-zA-Z]+)_(amd64|arm64)'
+            else:
+                pattern = r'\[duckdb-extensions-([a-zA-Z]+)_(amd64|arm64)'
             match = re.search(pattern, row[0])
             if match:
-                platform = match.group(1)
-                architecture = match.group(2)
+                # print("HERE", match.group(1), match.group(2), match.group(3))
+                platform = match.group(2) if branch == 'main' else match.group(1)
+                architecture = match.group(3) if branch == 'main' else match.group(2)
                 duckdb_arch = platform + "_" + architecture
                 if duckdb_arch in tested_binaries:
                     tested_binaries.remove(duckdb_arch)
@@ -362,6 +375,7 @@ def create_inputs(build_job, con, build_job_run_id):
                         "run_id": build_job_run_id,
                         "duckdb_binary": platform if platform == 'osx' else platform + "-" + architecture
                     }
+                    # print("1️⃣", new_data)
                     matrix_data.append(new_data)
                     # also add python extensions for linux, ignore windows and osx for now
                     if platform.startswith('linux'):
@@ -374,6 +388,7 @@ def create_inputs(build_job, con, build_job_run_id):
                             "run_id": build_job_run_id,
                             "duckdb_binary": platform + "-" + architecture
                         }
+                        # print("2️⃣", new_data)
                         matrix_data.append(new_data)
     else:
         for row in tested_binaries:
