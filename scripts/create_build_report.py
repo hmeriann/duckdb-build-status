@@ -22,7 +22,6 @@ import tabulate
 from collections import defaultdict
 from shared_functions import fetch_data
 from shared_functions import list_all_runs
-from shared_functions import list_extensions
 from shared_functions import count_consecutive_failures
 from shared_functions import BuildJob
 

@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
     inputs:
       event:
-        description: event triggered the run (repository_dispatch - for `main`)
+        description: event triggered the run (`workflow_dispatch`)
         type: string
       should_publish:
         description: true - to publish the report
