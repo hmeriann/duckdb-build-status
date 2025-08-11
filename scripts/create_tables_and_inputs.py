@@ -103,10 +103,10 @@ def save_run_data_to_json_files(build_job, con, build_job_run_id, on_tag):
     staging_command = [
             "aws", "s3", "ls", "--recursive", f"s3://duckdb-staging/{commit_sha}/{GH_REPO}/github_release"
         ]
-    get_previous_version = subprocess.check_output("git tag --sort=-creatordate | sed -n 2p", stderr=subprocess.STDOUT, shell=True)
-    biggest_version = get_previous_version if get_previous_version.startswith('v') else ""
+    previous_version_tag = subprocess.check_output(["git", "tag", "--sort=-creatordate"], text=True).splitlines()[1]
+    previous_tag = previous_version_tag if previous_version_tag.startswith('v') else ""
     staging_command_on_tag = [
-            "aws", "s3", "ls", "--recursive", f"s3://duckdb-staging/{commit_sha}/{biggest_version}/{GH_REPO}/github_release"
+            "aws", "s3", "ls", "--recursive", f"s3://duckdb-staging/{commit_sha}/{previous_tag}/{GH_REPO}/github_release"
         ]
     staging_result = run_aws_ls(staging_command)
     if staging_result.returncode != 0 or not staging_result.stdout.strip():
