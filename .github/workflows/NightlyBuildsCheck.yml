@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
     inputs:
       event:
-        description: event triggered the run (repository_dispatch - for `main`)
+        description: event triggered the run (`workflow_dispatch`)
         type: string
       should_publish:
         description: true - to publish the report
@@ -40,6 +40,8 @@ jobs:
       CURR_DATE: ${{ steps.curr-date.outputs.CURR_DATE }}
       matrix: ${{ steps.set-outputs.outputs.matrix }}
       run_id: ${{ steps.get_run_id.outputs.run_id }}
+      previous_tag: ${{ steps.get_run_id.outputs.previous_tag }}
+      previous_sha: ${{ steps.get_run_id.outputs.previous_sha }}
     steps:
       - id: curr-date
         run: echo "CURR_DATE=$(date +%Y-%m-%d)" >> $GITHUB_OUTPUT
@@ -66,8 +68,9 @@ jobs:
         env:
           CURR_DATE: ${{ steps.curr-date.outputs.CURR_DATE }}
         run: |
-          run_id=$(python scripts/create_tables_and_inputs.py --branch "${{ github.ref_name }}" --event "${{ inputs.event }}")
-          echo "run_id=$run_id" >> $GITHUB_OUTPUT
+          python scripts/create_tables_and_inputs.py --branch "${{ github.ref_name }}" --event "${{ inputs.event }}"
+          # run_id=$(python scripts/create_tables_and_inputs.py --branch "${{ github.ref_name }}" --event "${{ inputs.event }}")
+          # echo "run_id=$run_id" >> $GITHUB_OUTPUT
 
       - name: Upload DuckDB file
         uses: actions/upload-artifact@v4
@@ -172,7 +175,7 @@ jobs:
           # get a run_id
           run_id=${{ needs.get-run-info.outputs.run_id }}
           # download nightly release files from GH and generate digests
-          aws s3 ls --recursive s3://duckdb-staging/71c5c07cdd/v1.3.0/${{ env.GH_REPO }}/github_release | awk '{print $4}' > release-assets.txt 
+          aws s3 ls --recursive s3://duckdb-staging/${{ needs.get-run-info.outputs.previous_sha }}/${{ needs.get-run-info.outputs.previous_tag }}/${{ env.GH_REPO }}/github_release | awk '{print $4}' > release-assets.txt 
           cat release-assets.txt
           for file_path in $(cat release-assets.txt); do 
             aws s3 cp s3://duckdb-staging/$file_path .;
