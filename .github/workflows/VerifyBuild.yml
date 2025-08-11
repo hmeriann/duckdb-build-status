@@ -73,14 +73,16 @@ jobs:
             sparse-checkout: |
                 .github/config
             path: ext
-            repository: ${{ env.GH_REPO }}
+            repository: 'duckdb/duckdb'
+            # repository: ${{ env.GH_REPO }}
     
       - name: Get Run Id
         id: get-run-id
         shell: bash
         run: |
             if ${{ inputs.run_id == '0' }}; then
-                RUN_ID=$(gh run list --workflow 'InvokeCI.yml' --repo ${{ env.GH_REPO }} --branch ${{ inputs.branch }} --json databaseId,status,headBranch,headSha -q '.[0].databaseId')
+                RUN_ID=$(gh run list --workflow 'InvokeCI.yml' --repo 'duckdb/duckdb' --branch ${{ inputs.branch }} --json databaseId,status,headBranch,headSha -q '.[0].databaseId')
+                # RUN_ID=$(gh run list --workflow 'InvokeCI.yml' --repo ${{ env.GH_REPO }} --branch ${{ inputs.branch }} --json databaseId,status,headBranch,headSha -q '.[0].databaseId')
             else
                 RUN_ID=${{inputs.run_id}}
             fi
