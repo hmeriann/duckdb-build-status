@@ -23,6 +23,10 @@
   background-color: $green-200;
 }
 
+.label-gray:not(g) {
+  background-color: $gray-200;
+}
+
 .label-purple:not(g) {
   background-color: $purple-100;
 }
