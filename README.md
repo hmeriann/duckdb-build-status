@@ -37,7 +37,8 @@ bundle exec jekyll serve
 
 ### Typical maintenance
 
-* **When new release branch** in the main DuckDB repo, create a corresponding branch in current repo to trigger nighly builds status report creation for the **new** branch of **DuckDB**. Web-site structure should also be updated.
+* **When new release branch** in the main DuckDB repo, create a corresponding branch in current repo to trigger nighly builds status report creation for the **new** branch of **DuckDB**. Web-site structure and [`create_inputs()`](https://github.com/duckdb/duckdb-build-status/blob/fb1b1803e64dfa593e096f384282e372aba754d3/scripts/create_tables_and_inputs.py#L361) should also be updated.
+
 * **If InvokeCI trigger changes**, it doesn't matter for the auto daily run, but when you'd like to re-run `NightlyBuildsCheck` workflow manually, you should use new event name for the `event` input. ([NightlyBuildsCheck](https://github.com/duckdb/duckdb-build-status/blob/main/.github/workflows/NightlyBuildsCheck.yml#L12))
 
 If you tell me which branches/dates you plan to keep on the site, I can draft a minimal “one-button” Rake command (or a short shell script) tailored to just those inputs.
