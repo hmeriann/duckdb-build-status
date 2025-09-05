@@ -366,15 +366,15 @@ def create_inputs(build_job, con, build_job_run_id):
     tested_builds_dict = {}
     if branch != 'v1.2-histrionicus':
         for row in extensions_artifacts:
-            if branch == 'main':
-                pattern = r'\[(main|rust-based)-extensions-.*-extension-([a-zA-Z]+)_(amd64|arm64)'
+            if branch in ('main', 'v1.4-andium'):
+                pattern = rf'\[(main|rust-based)-extensions-.*-extension-([a-zA-Z]+)_(amd64|arm64)'
             else:
                 pattern = r'\[duckdb-extensions-([a-zA-Z]+)_(amd64|arm64)'
             match = re.search(pattern, row[0])
             if match:
                 # print("HERE", match.group(1), match.group(2), match.group(3))
-                platform = match.group(2) if branch == 'main' else match.group(1)
-                architecture = match.group(3) if branch == 'main' else match.group(2)
+                platform = match.group(2) if branch in ('main', 'v1.4-andium') else match.group(1)
+                architecture = match.group(3) if branch in ('main', 'v1.4-andium') else match.group(2)
                 duckdb_arch = platform + "_" + architecture
                 if duckdb_arch in tested_binaries:
                     tested_binaries.remove(duckdb_arch)
