@@ -11,7 +11,7 @@
 
 ### What it is
 
-* This repo holds the source for the public **DuckDB Nightly Build Status** site (static pages with daily updates based on nigthly builds created in [DuckDB repository](https://github.com/duckdb/duckdb)). It’s a Jekyll site using the **Just the Docs** theme.
+* This repo holds the source for the public [**DuckDB Nightly Build Status**](https://duckdb.github.io/duckdb-build-status/) site (static pages with daily updates based on nigthly builds created in [DuckDB repository](https://github.com/duckdb/duckdb)). It’s a Jekyll site using the **Just the Docs** theme.
 
 # 
 
@@ -21,7 +21,7 @@ Here’s a **short maintenance guide** for **duckdb/duckdb-build-status**.
 
 * Jekyll: `_config.yml`, `Gemfile`, layouts/partials (`_layouts/`, `_includes/`), styles (`_sass/`), and the landing page [`index.md`](https://github.com/duckdb/duckdb-build-status/blob/main/index.md).
 * Workflow: [`NightlyBuildsCheck.yml`](https://github.com/duckdb/duckdb-build-status/blob/main/.github/workflows/NightlyBuildsCheck.yml) workflow is the entry point and it's triggered by notification from [`InvokeCI.yml`](https://github.com/duckdb/duckdb/actions/workflows/InvokeCI.yml). It uses scripts to create build reports and push them to update this repo contents. When it completes, Pages get automatically deployed.
-You can re-run the `NightlyBuildsCheck` manually and if you don't want that run results to be deployed, just pass `false` to the [`shoulf_be_deployed`](https://github.com/duckdb/duckdb-build-status/blob/8545b4072c10dfff86e788cadbf8cc38081b3bbc/.github/workflows/NightlyBuildsCheck.yml#L14) input.
+You can re-run the `NightlyBuildsCheck` manually and if you don't want that run results to be deployed, just pass `false` to the [`should_be_deployed`](https://github.com/duckdb/duckdb-build-status/blob/8545b4072c10dfff86e788cadbf8cc38081b3bbc/.github/workflows/NightlyBuildsCheck.yml#L14) input.
 > ❗️ Sinse `InvokeCI` runs on different branches, its each run triggers corresponding run of the `NightlyBuildsCheck`
 * Build helpers: `scripts/` with tasks to fetch/assemble data and produce generated content. ([scripts][https://github.com/duckdb/duckdb-build-status/tree/main/scripts])
 * Generated content: dated pages like `docs/main/YYYY-MM-DD-main.md`. ([`docs/main`](https://github.com/duckdb/duckdb-build-status/tree/main/docs/main))
