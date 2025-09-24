@@ -34,24 +34,9 @@ def stop_container(container, container_name):
     container.remove()
     print(f"Container '{ container_name } has stopped.")
 
-def list_builds_for_python_versions(run_id):
-    file_name = "python_run_info.md"
-    command = [
-        "gh", "run", "view",
-        "--repo", GH_REPO,
-        run_id, "-v"
-    ]
-    fetch_data(command, file_name)
-    with open(file_name, "r") as file:
-        content = file.read()
-        pattern = r"cp([0-9]+)-.*"
-        matches = sorted(set(re.findall(pattern, content)))
-        # puts a '.' after the first character: '310' => '3.10'
-        result = [word[0] + '.' + word[1:] if len(word) > 1 else word + '.' for word in matches]
-        return result
-
 def verify_and_test_python_linux(file_name, extensions, nightly_build, run_id, architecture, runs_on, full_sha, tested_platforms_file_name, branch):
-    python_versions = list_builds_for_python_versions(run_id)
+    python_versions = ['3.9', '3.10', '3.11', '3.12', '3.13']
+    print(python_versions)
     if runs_on.count("ubuntu"):
         for version in python_versions:
             print("HERE")
