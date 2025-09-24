@@ -116,7 +116,7 @@ jobs:
                     --runs_on ${{ inputs.runs_on }} \
                     --branch ${{ inputs.branch }}
               else
-                echo Python wasn't released tonight
+                echo "Python wasn't released tonight"
               fi
             fi
 
