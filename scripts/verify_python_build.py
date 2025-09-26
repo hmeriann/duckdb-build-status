@@ -42,7 +42,7 @@ def verify_and_test_python_linux(file_name, extensions, nightly_build, run_id, a
             client = docker.from_env() # to use docker installed on GH Actions machine by the workflow
             arch = f"linux/{ architecture }"
             docker_image = f"python:{ version }"
-            if arch != 'arm64':
+            if architecture != 'arm64':
                 print("There is no docker container with linux amd64")
                 return
             else:
